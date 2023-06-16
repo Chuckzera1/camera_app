@@ -1,15 +1,21 @@
 import { useIsFocused } from "@react-navigation/native";
 import { Camera, CameraType, FaceDetectionResult } from "expo-camera";
-import * as FaceDetector from "expo-face-detector";
-import { StyleSheet, Text } from "react-native";
+import {
+  FaceDetectorClassifications,
+  FaceDetectorLandmarks,
+  FaceDetectorMode,
+  FaceFeature,
+} from "expo-face-detector";
+import { ImageSourcePropType, StyleSheet, Text } from "react-native";
 import { View } from "../../components/Themed";
 import { useEffect, useState } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import winkingImg from "../../assets/images/winking.png";
+import neutralEmoji from "../../assets/images/neutral.png";
+import grinningEmoji from "../../assets/images/grinning.png";
+import winkingEmoji from "../../assets/images/winking.png";
 
 interface FaceType {
   bounds: {
@@ -26,10 +32,10 @@ interface FaceType {
 
 export default function TabTwoScreen() {
   const isFocused = useIsFocused();
-  const insets = useSafeAreaInsets();
 
   const [faceDetected, setFaceDetected] = useState<boolean>(false);
   const [permission, requestPermission] = Camera.useCameraPermissions();
+  const [emoji, setEmoji] = useState<ImageSourcePropType>(neutralEmoji);
 
   const faceValues = useSharedValue({
     width: 0,
@@ -38,17 +44,32 @@ export default function TabTwoScreen() {
     y: 0,
   });
 
+  const getCorrectEmojiImage = (face: FaceFeature) => {
+    if (face.smilingProbability && face.smilingProbability > 0.8)
+      return grinningEmoji;
+    if (
+      face.leftEyeOpenProbability &&
+      face.leftEyeOpenProbability < 0.5 &&
+      face.rightEyeOpenProbability &&
+      face.rightEyeOpenProbability > 0.5
+    )
+      return winkingEmoji;
+    return neutralEmoji;
+  };
+
   const handleFaceDetected = ({ faces }: FaceDetectionResult) => {
-    const face = faces[0] as FaceType;
+    const face = faces[0] as FaceFeature;
     if (face) {
       const { size, origin } = face.bounds;
       faceValues.value = {
         width: size.width,
         height: size.height,
         x: origin.x,
-        y: origin.y,
+        y: origin.y + 300,
       };
       setFaceDetected(true);
+      const correctEmoji = getCorrectEmojiImage(face);
+      setEmoji(correctEmoji);
     } else {
       setFaceDetected(false);
     }
@@ -78,16 +99,16 @@ export default function TabTwoScreen() {
       {isFocused && (
         <>
           {faceDetected && (
-            <Animated.Image style={animatedStyle} source={winkingImg} />
+            <Animated.Image style={animatedStyle} source={emoji} />
           )}
           <Camera
             type={CameraType.front}
             style={{ flex: 1, width: "100%" }}
             onFacesDetected={handleFaceDetected}
             faceDetectorSettings={{
-              mode: FaceDetector.FaceDetectorMode.fast,
-              detectLandmarks: FaceDetector.FaceDetectorLandmarks.all,
-              runClassifications: FaceDetector.FaceDetectorClassifications.all,
+              mode: FaceDetectorMode.fast,
+              detectLandmarks: FaceDetectorLandmarks.all,
+              runClassifications: FaceDetectorClassifications.all,
               minDetectionInterval: 100,
               tracking: true,
             }}
