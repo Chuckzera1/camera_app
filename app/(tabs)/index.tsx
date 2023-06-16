@@ -12,7 +12,8 @@ export default function TabOneScreen() {
         lightColor="#eee"
         darkColor="rgba(255,255,255,0.1)"
       />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <Text>For now this is just a text tab.</Text>
+      <Text>Go to tab two to see the camera working</Text>
     </View>
   );
 }
